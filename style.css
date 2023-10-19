@@ -1,0 +1,11 @@
+/* Disable scrolling on Body*/
+body, html {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    margin: 0;
+}
+
+div.wrap {
+    margin: 3px;
+}

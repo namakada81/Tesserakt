@@ -27,15 +27,57 @@ const fragmentShaderSource = [
 '}'
 ].join('\n');
 
+//
+// SPECIFY VERTICES AND INDICES
+//
+const boxVertices = [
+	-1.0, -1.0,  1.0,  0.0, 1.0, //0, front face
+	 1.0, -1.0,  1.0,  1.0, 1.0, //1
+	 1.0,  1.0,  1.0,  1.0, 0.0, //2
+	-1.0,  1.0,  1.0,  0.0, 0.0, //3
+
+	-1.0, -1.0, -1.0,  1.0, 1.0, //4, back face
+	 1.0, -1.0, -1.0,  0.0, 1.0, //5
+	 1.0,  1.0, -1.0,  0.0, 0.0, //6
+	-1.0,  1.0, -1.0,  1.0, 0.0, //7
+
+	 1.0, -1.0,  1.0,  0.0, 1.0, // 8 -> 1, right face
+	 1.0,  1.0,  1.0,  0.0, 0.0, // 9 -> 2
+	 1.0, -1.0, -1.0,  1.0, 1.0, //10 -> 5
+	 1.0,  1.0, -1.0,  1.0, 0.0, //11 -> 6
+
+	-1.0, -1.0,  1.0,  1.0, 1.0, //12 -> 0, left face
+	-1.0,  1.0,  1.0,  1.0, 0.0, //13 -> 3
+	-1.0, -1.0, -1.0,  0.0, 1.0, //14 -> 4
+	-1.0,  1.0, -1.0,  0.0, 0.0, //15 -> 7
+
+	 1.0,  1.0,  1.0,  1.0, 1.0, //16 -> 2, top face
+	-1.0,  1.0,  1.0,  0.0, 1.0, //17 -> 3
+
+	-1.0, -1.0,  1.0,  0.0, 0.0, //18 -> 0, bottom face
+	 1.0, -1.0,  1.0,  1.0, 0.0, //19 -> 1
+];
+
+const boxIndices = [
+	 0,  1,  2,  0,  2,  3, // Front face
+	 6,  5,  4,  4,  7,  6, // Back face
+	17, 16, 11, 17, 11, 15, // Top face
+	14, 10, 19, 14, 19, 18, // Bottom face
+	 8, 10, 11,  9,  8, 11, // Right face
+	12, 13, 15, 12, 15, 14  // Left face
+];
+
+
 var initGL = function () {
 	
 	//
 	// SETUP WEBGL ENVIRONMENT
 	//
 	
-	console.log('This is Working');
-	
 	const canvas = document.getElementById("webgl-canvas");
+	//2 * 3px margin; see slyte.css
+	canvas.height = window.innerHeight - 6;
+	canvas.width = window.innerWidth - 6;
 	const gl = canvas.getContext("webgl");
 	
 	if(!gl){
@@ -86,56 +128,14 @@ var initGL = function () {
 		return;
 	}
 	
-	
-	//
-	// SPECIFY VERTICES AND INDICES
-	//
-	const boxVertices = [
-		-1.0, -1.0,  1.0,  0.0, 1.0, //0, front face
-		 1.0, -1.0,  1.0,  1.0, 1.0, //1
-		 1.0,  1.0,  1.0,  1.0, 0.0, //2
-		-1.0,  1.0,  1.0,  0.0, 0.0, //3
-
-		-1.0, -1.0, -1.0,  1.0, 1.0, //4, back face
-		 1.0, -1.0, -1.0,  0.0, 1.0, //5
-		 1.0,  1.0, -1.0,  0.0, 0.0, //6
-		-1.0,  1.0, -1.0,  1.0, 0.0, //7
-
-		 1.0, -1.0,  1.0,  0.0, 1.0, // 8 -> 1, right face
-		 1.0,  1.0,  1.0,  0.0, 0.0, // 9 -> 2
-		 1.0, -1.0, -1.0,  1.0, 1.0, //10 -> 5
-		 1.0,  1.0, -1.0,  1.0, 0.0, //11 -> 6
-
-		-1.0, -1.0,  1.0,  1.0, 1.0, //12 -> 0, left face
-		-1.0,  1.0,  1.0,  1.0, 0.0, //13 -> 3
-		-1.0, -1.0, -1.0,  0.0, 1.0, //14 -> 4
-		-1.0,  1.0, -1.0,  0.0, 0.0, //15 -> 7
-
-		 1.0,  1.0,  1.0,  1.0, 1.0, //16 -> 2, top face
-		-1.0,  1.0,  1.0,  0.0, 1.0, //17 -> 3
-
-		-1.0, -1.0,  1.0,  0.0, 0.0, //18 -> 0, bottom face
-		 1.0, -1.0,  1.0,  1.0, 0.0, //19 -> 1
-	  ];
-
-	  // Define the indices for the cube's faces (as before)
-	  const boxIndices = [
-		 0,  1,  2,  0,  2,  3, // Front face
-		 6,  5,  4,  4,  7,  6, // Back face
-		17, 16, 11, 17, 11, 15, // Top face
-		14, 10, 19, 14, 19, 18, // Bottom face
-		 8, 10, 11,  9,  8, 11, // Right face
-		12, 13, 15, 12, 15, 14  // Left face
-	  ];
-
-	
 	//
 	// CREATING BUFFERS AND ATTRIBUTE LOCATIONS
 	//
 	
 	var boxVertexBufferObject = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, boxVertexBufferObject);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(boxVertices), gl.STATIC_DRAW);
+	gl.bufferData(gl.ARRAY_BUFFER, translateBox(1,0,0), gl.STATIC_DRAW);
+	
 	
 	var boxIndexBufferObject = gl.createBuffer();
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, boxIndexBufferObject);
@@ -208,8 +208,9 @@ var initGL = function () {
 	var worldMatrix = new Float32Array(16);
 	var viewMatrix = new Float32Array(16);
 	var projMatrix = new Float32Array(16);
-
-	let cameraPosition = [0, 0, 5];
+	
+	let distance = 5;
+	let cameraPosition = [0, 0, distance];
 	
 	mat4.identity(worldMatrix);
 	mat4.lookAt(viewMatrix, cameraPosition, [0, 0, 0], [0, 1, 0]);
@@ -233,7 +234,18 @@ var initGL = function () {
     let lastX;
     let lastY;
     let dragging = false;
-	
+
+	canvas.addEventListener('wheel', (e) => {
+		//exp / log adjust the camera distance
+		distance *= (e.deltaY > 0 ? 1.2 : 1/1.2);
+
+		// Update the view matrix with the new angles
+		vec3.rotateX(cameraPosition, [0, 0, distance], [0, 0, 0], -angleX);
+		vec3.rotateY(cameraPosition, cameraPosition, [0, 0, 0], -angleY);
+		mat4.lookAt(viewMatrix, cameraPosition, [0, 0, 0], [0, 1, 0]);
+		
+		gl.uniformMatrix4fv(matViewUniformLocation, gl.FALSE, viewMatrix);
+	});
 
     // Mouse down event
     canvas.addEventListener('mousedown', (e) => {
@@ -258,7 +270,7 @@ var initGL = function () {
 		angleX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, angleX));
 
 		// Update the view matrix with the new angles
-		vec3.rotateX(cameraPosition, [0, 0, 5], [0, 0, 0], -angleX);
+		vec3.rotateX(cameraPosition, [0, 0, distance], [0, 0, 0], -angleX);
 		vec3.rotateY(cameraPosition, cameraPosition, [0, 0, 0], -angleY);
 		mat4.lookAt(viewMatrix, cameraPosition, [0, 0, 0], [0, 1, 0]);
 		
@@ -284,7 +296,16 @@ var initGL = function () {
 	
 }
 
-function generateBox(x, y, z){
+function translateBox(x, y, z){
+	//Copy default box
+	let out = new Float32Array(boxVertices);
 
-
+	//transform box to new coordinates
+	for(let i = 0; i < out.length; i+=5){
+		out[i] += x;
+		out[i+1] += y;
+		out[i+2] += z;
+	}
+	
+	return out;
 }
