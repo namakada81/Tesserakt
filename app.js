@@ -90,73 +90,44 @@ var initGL = function () {
 	//
 	// SPECIFY VERTICES AND INDICES
 	//
-	
-	var boxVertices = 
-	[ // X, Y, Z           U, V
-		// Top
-		-1.0, 1.0, -1.0,   0, 0,
-		-1.0, 1.0, 1.0,    0, 1,
-		1.0, 1.0, 1.0,     1, 1,
-		1.0, 1.0, -1.0,    1, 0,
+	const boxVertices = [
+		-1.0, -1.0,  1.0,  0.0, 1.0, //0, front face
+		 1.0, -1.0,  1.0,  1.0, 1.0, //1
+		 1.0,  1.0,  1.0,  1.0, 0.0, //2
+		-1.0,  1.0,  1.0,  0.0, 0.0, //3
 
-		// Left
-		-1.0, 1.0, 1.0,    1, 1,
-		-1.0, -1.0, 1.0,   0, 1,
-		-1.0, -1.0, -1.0,  0, 0,
-		-1.0, 1.0, -1.0,   1, 0,
+		-1.0, -1.0, -1.0,  1.0, 1.0, //4, back face
+		 1.0, -1.0, -1.0,  0.0, 1.0, //5
+		 1.0,  1.0, -1.0,  0.0, 0.0, //6
+		-1.0,  1.0, -1.0,  1.0, 0.0, //7
 
-		// Right
-		1.0, 1.0, 1.0,     1, 1,
-		1.0, -1.0, 1.0,    0, 1,
-		1.0, -1.0, -1.0,   0, 0,
-		1.0, 1.0, -1.0,    1, 0,
+		 1.0, -1.0,  1.0,  0.0, 1.0, // 8 -> 1, right face
+		 1.0,  1.0,  1.0,  0.0, 0.0, // 9 -> 2
+		 1.0, -1.0, -1.0,  1.0, 1.0, //10 -> 5
+		 1.0,  1.0, -1.0,  1.0, 0.0, //11 -> 6
 
-		// Front
-		1.0, 1.0, 1.0,     1, 1,
-		1.0, -1.0, 1.0,    1, 0,
-		-1.0, -1.0, 1.0,   0, 0,
-		-1.0, 1.0, 1.0,    0, 1,
+		-1.0, -1.0,  1.0,  1.0, 1.0, //12 -> 0, left face
+		-1.0,  1.0,  1.0,  1.0, 0.0, //13 -> 3
+		-1.0, -1.0, -1.0,  0.0, 1.0, //14 -> 4
+		-1.0,  1.0, -1.0,  0.0, 0.0, //15 -> 7
 
-		// Back
-		1.0, 1.0, -1.0,    1, 1,
-		1.0, -1.0, -1.0,   1, 0,
-		-1.0, -1.0, -1.0,  0, 0,
-		-1.0, 1.0, -1.0,   0, 1,
+		 1.0,  1.0,  1.0,  1.0, 1.0, //16 -> 2, top face
+		-1.0,  1.0,  1.0,  0.0, 1.0, //17 -> 3
 
-		// Bottom
-		-1.0, -1.0, -1.0,  0, 0,
-		-1.0, -1.0, 1.0,   0, 1,
-		1.0, -1.0, 1.0,    1, 1,
-		1.0, -1.0, -1.0,   1, 0,
-	];
+		-1.0, -1.0,  1.0,  0.0, 0.0, //18 -> 0, bottom face
+		 1.0, -1.0,  1.0,  1.0, 0.0, //19 -> 1
+	  ];
 
-	var boxIndices =
-	[
-		// Top
-		0, 1, 2,
-		0, 2, 3,
+	  // Define the indices for the cube's faces (as before)
+	  const boxIndices = [
+		 0,  1,  2,  0,  2,  3, // Front face
+		 6,  5,  4,  4,  7,  6, // Back face
+		17, 16, 11, 17, 11, 15, // Top face
+		14, 10, 19, 14, 19, 18, // Bottom face
+		 8, 10, 11,  9,  8, 11, // Right face
+		12, 13, 15, 12, 15, 14  // Left face
+	  ];
 
-		// Left
-		5, 4, 6,
-		6, 4, 7,
-
-		// Right
-		8, 9, 10,
-		8, 10, 11,
-
-		// Front
-		13, 12, 14,
-		15, 14, 12,
-
-		// Back
-		16, 17, 18,
-		16, 18, 19,
-
-		// Bottom
-		21, 20, 22,
-		22, 20, 23
-	];
-	
 	
 	//
 	// CREATING BUFFERS AND ATTRIBUTE LOCATIONS
@@ -237,9 +208,11 @@ var initGL = function () {
 	var worldMatrix = new Float32Array(16);
 	var viewMatrix = new Float32Array(16);
 	var projMatrix = new Float32Array(16);
+
+	let cameraPosition = [0, 0, 5];
 	
 	mat4.identity(worldMatrix);
-	mat4.lookAt(viewMatrix, [0, 0, -5], [0, 0, 0], [0, 1, 0]);
+	mat4.lookAt(viewMatrix, cameraPosition, [0, 0, 0], [0, 1, 0]);
 	mat4.perspective(projMatrix, glMatrix.toRadian(90), canvas.width/canvas.height, 0.1, 1000.0) 
 	
 	gl.uniformMatrix4fv(matWorldUniformLocation, gl.FALSE, worldMatrix);
@@ -260,7 +233,7 @@ var initGL = function () {
     let lastX;
     let lastY;
     let dragging = false;
-	let cameraPosition = [0, 0, -5];
+	
 
     // Mouse down event
     canvas.addEventListener('mousedown', (e) => {
@@ -285,7 +258,7 @@ var initGL = function () {
 		angleX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, angleX));
 
 		// Update the view matrix with the new angles
-		vec3.rotateX(cameraPosition, [0, 0, -5], [0, 0, 0], angleX);
+		vec3.rotateX(cameraPosition, [0, 0, 5], [0, 0, 0], -angleX);
 		vec3.rotateY(cameraPosition, cameraPosition, [0, 0, 0], -angleY);
 		mat4.lookAt(viewMatrix, cameraPosition, [0, 0, 0], [0, 1, 0]);
 		
@@ -309,4 +282,9 @@ var initGL = function () {
 	requestAnimationFrame(loop);
 	
 	
+}
+
+function generateBox(x, y, z){
+
+
 }
