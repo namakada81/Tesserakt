@@ -199,26 +199,29 @@ var initGL = function () {
 	// CREATE TEXTURE
 	//
 	
-	var texture = gl.createTexture();
-	gl.bindTexture(gl.TEXTURE_2D, texture);
+	const texture = gl.createTexture();
+  	gl.bindTexture(gl.TEXTURE_2D, texture);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-	
+	  
+	const level = 0;
+	const internalFormat = gl.RGBA;
+	const width = 1;
+	const height = 1;
+	const border = 0;
+	const srcFormat = gl.RGBA;
+	const srcType = gl.UNSIGNED_BYTE;
+
 	gl.texImage2D(
-		gl.TEXTURE_2D,						//target
-		0,									//level
-		gl.RGBA,							//internalformat
-		103,								//width
-		138,								//height
-		0,									//border must be 0
-		gl.RGBA,							//format
-		gl.UNSIGNED_BYTE,					//type
-		document.getElementById('spades13')	//source
+		gl.TEXTURE_2D,
+		level,
+		internalFormat,
+		srcFormat,
+		srcType,
+		document.getElementById('spades13'),
 	);
-	
-	gl.bindTexture(gl.TEXTURE_2D, null);
 	
 	gl.useProgram(program);
 	
@@ -237,7 +240,7 @@ var initGL = function () {
 	
 	mat4.identity(worldMatrix);
 	mat4.lookAt(viewMatrix, [0, 0, -5], [0, 0, 0], [0, 1, 0]);
-	mat4.perspective(projMatrix, glMatrix.toRadian(45), canvas.width/canvas.height, 0.1, 1000.0) 
+	mat4.perspective(projMatrix, glMatrix.toRadian(90), canvas.width/canvas.height, 0.1, 1000.0) 
 	
 	gl.uniformMatrix4fv(matWorldUniformLocation, gl.FALSE, worldMatrix);
 	gl.uniformMatrix4fv(matViewUniformLocation, gl.FALSE, viewMatrix);
@@ -257,6 +260,7 @@ var initGL = function () {
     let lastX;
     let lastY;
     let dragging = false;
+	let cameraPosition = [0, 0, -5];
 
     // Mouse down event
     canvas.addEventListener('mousedown', (e) => {
@@ -278,17 +282,20 @@ var initGL = function () {
 		
 		angleY += deltaX * 0.01;
 		angleX += deltaY * 0.01;
-		// Update the model-view matrix with the new angles
-		mat4.rotate(worldMatrix, identityMatrix, angleY, [0, 1, 0]);
-		mat4.rotate(worldMatrix, worldMatrix, angleX, [1, 0, 0]);
-		gl.uniformMatrix4fv(matWorldUniformLocation, gl.FALSE, worldMatrix);
+		angleX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, angleX));
+
+		// Update the view matrix with the new angles
+		vec3.rotateX(cameraPosition, [0, 0, -5], [0, 0, 0], angleX);
+		vec3.rotateY(cameraPosition, cameraPosition, [0, 0, 0], -angleY);
+		mat4.lookAt(viewMatrix, cameraPosition, [0, 0, 0], [0, 1, 0]);
+		
+		gl.uniformMatrix4fv(matViewUniformLocation, gl.FALSE, viewMatrix);
 		
 		lastX = e.clientX;
 		lastY = e.clientY;
 		}
     });
-	
-	
+
 	//
 	// RENDER LOOP
 	//
@@ -296,9 +303,6 @@ var initGL = function () {
 	var loop = function () {
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		gl.drawElements(gl.TRIANGLES, boxIndices.length, gl.UNSIGNED_SHORT, 0);
-		
-		gl.bindTexture(gl.TEXTURE_2D, boxTexture);
-		gl.activeTexture(gl.TEXTURE0);
 		
 		requestAnimationFrame(loop);
 	};
