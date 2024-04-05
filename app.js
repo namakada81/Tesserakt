@@ -1,17 +1,24 @@
+const MAX_MATRICES = 20;
+
 const vertexShaderSource = [
 'precision mediump float;',
 '',
+'#define MAX_MATRICES '+MAX_MATRICES,
+'',
 'attribute vec3 vertPosition;',
 'attribute vec2 vertTexCoord;',
+'attribute float boxIndex;',
+'',
 'varying vec2 fragTexCoord;',
-'uniform mat4 mWorld;',
+'',
+'uniform mat4 mWorlds[MAX_MATRICES];',
 'uniform mat4 mView;',
 'uniform mat4 mProj;',
 '',
 'void main()',
 '{',
 ' fragTexCoord = vertTexCoord;',
-' gl_Position = mProj * mView * mWorld * vec4(vertPosition, 1.0);',
+' gl_Position = mProj * mView * mWorlds[int(boxIndex)] * vec4(vertPosition, 1.0);',
 '}'
 ].join('\n');
 
@@ -67,6 +74,20 @@ const boxIndices = [
 	12, 13, 15, 12, 15, 14  // Left face
 ];
 
+function translateBox(x, y, z){
+	//Copy default box
+	let out = new Float32Array(boxVertices);
+
+	//transform box to new coordinates
+	for(let i = 0; i < out.length; i+=5){
+		out[i] += x;
+		out[i+1] += y;
+		out[i+2] += z;
+	}
+
+	return out;
+}
+
 
 var initGL = function () {
 	
@@ -78,7 +99,7 @@ var initGL = function () {
 	//2 * 3px margin; see slyte.css
 	canvas.height = window.innerHeight - 6;
 	canvas.width = window.innerWidth - 6;
-	const gl = canvas.getContext("webgl");
+	const gl = canvas.getContext("webgl2");
 	
 	if(!gl){
 		alert('Your browser does not support WebGL');
@@ -131,11 +152,10 @@ var initGL = function () {
 	//
 	// CREATING BUFFERS AND ATTRIBUTE LOCATIONS
 	//
-	
+
 	var boxVertexBufferObject = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, boxVertexBufferObject);
-	gl.bufferData(gl.ARRAY_BUFFER, translateBox(1,0,0), gl.STATIC_DRAW);
-	
+	gl.bufferData(gl.ARRAY_BUFFER, translateBox(0,0,0), gl.STATIC_DRAW);
 	
 	var boxIndexBufferObject = gl.createBuffer();
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, boxIndexBufferObject);
@@ -143,6 +163,7 @@ var initGL = function () {
 	
 	var positionAttribLocation = gl.getAttribLocation(program, 'vertPosition');
 	var texCoordAttribLocation = gl.getAttribLocation(program, 'vertTexCoord');
+	var boxIndexAttribLocation = gl.getAttribLocation(program, 'boxIndex');
 	
 	gl.vertexAttribPointer(
 		positionAttribLocation,
@@ -161,35 +182,42 @@ var initGL = function () {
 		5 * Float32Array.BYTES_PER_ELEMENT,
 		3 * Float32Array.BYTES_PER_ELEMENT
 	);
+
 	
 	gl.enableVertexAttribArray(positionAttribLocation);
-	gl.enableVertexAttribArray(texCoordAttribLocation);
-	
+	gl.enableVertexAttribArray(texCoordAttribLocation);	
 	
 	//
-	// CREATE TEXTURE
+	// CREATE TEXTURES
 	//
+	texture_names = ['spades13', 'spades14'];
+	const textures = [];
 	
-	const texture = gl.createTexture();
-  	gl.bindTexture(gl.TEXTURE_2D, texture);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-	  
 	const level = 0;
 	const internalFormat = gl.RGBA;
 	const srcFormat = gl.RGBA;
 	const srcType = gl.UNSIGNED_BYTE;
 
-	gl.texImage2D(
-		gl.TEXTURE_2D,
-		level,
-		internalFormat,
-		srcFormat,
-		srcType,
-		document.getElementById('spades13'),
-	);
+	texture_names.forEach(texture_name => {
+		const texture = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, texture);
+
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+		gl.texImage2D(
+			gl.TEXTURE_2D,
+			level,
+			internalFormat,
+			srcFormat,
+			srcType,
+			document.getElementById(texture_name),
+		);
+
+		textures.push(texture);
+	});
 	
 	gl.useProgram(program);
 	
@@ -197,23 +225,28 @@ var initGL = function () {
 	//
 	// CREATE MATRICES
 	//
-	
-	var matWorldUniformLocation = gl.getUniformLocation(program, 'mWorld');
+
+	var matWorldsUniformLocation = gl.getUniformLocation(program, 'mWorlds');
 	var matViewUniformLocation = gl.getUniformLocation(program, 'mView');
 	var matProjUniformLocation = gl.getUniformLocation(program, 'mProj');
+
+	const worldMatrices = [];
+	for(var i = 0; i < MAX_MATRICES; i++){
+		const matrix = new Float32Array(16);
+		mat4.fromTranslation(matrix, vec3.fromValues(0,3*i,0));
+		worldMatrices.push(...matrix);
+	}
 	
-	var worldMatrix = new Float32Array(16);
 	var viewMatrix = new Float32Array(16);
 	var projMatrix = new Float32Array(16);
 	
 	let distance = 5;
 	let cameraPosition = [0, 0, distance];
-	
-	mat4.identity(worldMatrix);
+
 	mat4.lookAt(viewMatrix, cameraPosition, [0, 0, 0], [0, 1, 0]);
 	mat4.perspective(projMatrix, glMatrix.toRadian(90), canvas.width/canvas.height, 0.1, 1000.0) 
 	
-	gl.uniformMatrix4fv(matWorldUniformLocation, gl.FALSE, worldMatrix);
+	gl.uniformMatrix4fv(matWorldsUniformLocation, gl.FALSE, worldMatrices);
 	gl.uniformMatrix4fv(matViewUniformLocation, gl.FALSE, viewMatrix);
 	gl.uniformMatrix4fv(matProjUniformLocation, gl.FALSE, projMatrix);
 
@@ -284,8 +317,13 @@ var initGL = function () {
 	
 	var loop = function () {
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-		gl.drawElements(gl.TRIANGLES, boxIndices.length, gl.UNSIGNED_SHORT, 0);
-		
+		for(var i = 0; i < 5; i++){
+			gl.bindTexture(gl.TEXTURE_2D, textures[i%textures.length]);
+			gl.vertexAttrib1f(boxIndexAttribLocation, i);
+			gl.bindBuffer(gl.ARRAY_BUFFER, boxVertexBufferObject);
+			gl.drawElements(gl.TRIANGLES, boxIndices.length, gl.UNSIGNED_SHORT, 0);
+		}
+
 		requestAnimationFrame(loop);
 	};
 	requestAnimationFrame(loop);
@@ -293,16 +331,3 @@ var initGL = function () {
 	
 }
 
-function translateBox(x, y, z){
-	//Copy default box
-	let out = new Float32Array(boxVertices);
-
-	//transform box to new coordinates
-	for(let i = 0; i < out.length; i+=5){
-		out[i] += x;
-		out[i+1] += y;
-		out[i+2] += z;
-	}
-
-	return out;
-}
